@@ -40,13 +40,13 @@ import (
 
 // persistentVolumeClaimCreator creates a pvc for the metering tool where the processed data is being saved before
 // exporting it to the S3 bucket.
-func persistentVolumeClaimCreator(ctx context.Context, client ctrlruntimeclient.Client, seed *kubermaticv1.Seed) error {
+func persistentVolumeClaimCreator(ctx context.Context, client ctrlruntimeclient.Client, namespace string, seed *kubermaticv1.Seed) error {
 	pvc := &corev1.PersistentVolumeClaim{}
 
 	if err := client.Get(ctx, types.NamespacedName{Namespace: seed.Namespace, Name: meteringDataName}, pvc); err != nil {
 		if kerrors.IsNotFound(err) {
 			pvc.ObjectMeta.Name = meteringDataName
-			pvc.ObjectMeta.Namespace = seed.Namespace
+			pvc.ObjectMeta.Namespace = namespace
 			pvc.ObjectMeta.Labels = map[string]string{
 				"app": meteringToolName,
 			}
