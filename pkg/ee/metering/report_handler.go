@@ -165,10 +165,10 @@ func getReportsForSeed(ctx context.Context, options minio.ListObjectsOptions, se
 	return reports, nil
 }
 
-func getS3DataFromSeed(ctx context.Context, seedClient ctrlruntimeclient.Client) (*minio.Client, string, error) {
+func getS3DataFromSeed(ctx context.Context, seedClient ctrlruntimeclient.Client, namespace string) (*minio.Client, string, error) {
 
 	var s3 v1.Secret
-	err := seedClient.Get(ctx, secretNamespacedName, &s3)
+	err := seedClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: SecretName}, &s3)
 	if err != nil {
 		return nil, "", err
 	}

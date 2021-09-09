@@ -35,7 +35,6 @@ import (
 	kubermaticv1 "k8c.io/kubermatic/v2/pkg/crd/kubermatic/v1"
 	v1 "k8c.io/kubermatic/v2/pkg/crd/kubermatic/v1"
 	"k8c.io/kubermatic/v2/pkg/provider"
-	"k8c.io/kubermatic/v2/pkg/resources"
 	k8cerrors "k8c.io/kubermatic/v2/pkg/util/errors"
 
 	corev1 "k8s.io/api/core/v1"
@@ -52,10 +51,7 @@ const (
 	Bucket          = "bucket"
 	Endpoint        = "endpoint"
 	SecretName      = "metering-s3"
-	SecretNamespace = "kubermatic"
 )
-
-var secretNamespacedName = types.NamespacedName{Name: SecretName, Namespace: SecretNamespace}
 
 type configurationReq struct {
 	Enabled          bool   `json:"enabled"`
@@ -95,7 +91,7 @@ func CreateOrUpdateConfigurations(ctx context.Context, request interface{}, mast
 	}
 
 	seedList := &kubermaticv1.SeedList{}
-	if err := masterClient.List(ctx, seedList, &ctrlruntimeclient.ListOptions{Namespace: resources.KubermaticNamespace}); err != nil {
+	if err := masterClient.List(ctx, seedList); err != nil {
 		return fmt.Errorf("failed listing seeds: %w", err)
 	}
 
@@ -175,8 +171,8 @@ func CreateOrUpdateCredentials(ctx context.Context, request interface{}, seedsGe
 		Endpoint:  []byte(req.Endpoint),
 	}
 
-	for _, client := range seeds {
-		if err := createOrUpdateMeteringToolSecret(ctx, client, data); err != nil {
+	for seed, client := range seeds {
+		if err := createOrUpdateMeteringToolSecret(ctx, client, data, seed.Namespace); err != nil {
 			return fmt.Errorf("failed to create or update metering tool credentials: %v", err)
 		}
 	}
@@ -184,10 +180,10 @@ func CreateOrUpdateCredentials(ctx context.Context, request interface{}, seedsGe
 	return nil
 }
 
-func createOrUpdateMeteringToolSecret(ctx context.Context, seedClient ctrlruntimeclient.Client, secretData map[string][]byte) error {
+func createOrUpdateMeteringToolSecret(ctx context.Context, seedClient ctrlruntimeclient.Client, secretData map[string][]byte, namespace string) error {
 
 	existingSecret := &corev1.Secret{}
-	if err := seedClient.Get(ctx, secretNamespacedName, existingSecret); err != nil && !kerrors.IsNotFound(err) {
+	if err := seedClient.Get(ctx, types.NamespacedName{Namespace: namespace, Name: SecretName}, existingSecret); err != nil && !kerrors.IsNotFound(err) {
 		return fmt.Errorf("failed to probe for secret %q: %v", SecretName, err)
 	}
 
@@ -195,7 +191,7 @@ func createOrUpdateMeteringToolSecret(ctx context.Context, seedClient ctrlruntim
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      SecretName,
-				Namespace: resources.KubermaticNamespace,
+				Namespace: namespace,
 			},
 			Type: corev1.SecretTypeOpaque,
 			Data: secretData,
