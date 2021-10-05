@@ -26,12 +26,13 @@ package metering
 
 import (
 	"context"
+	"reflect"
+	"testing"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakectrlruntimeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func Test_createOrUpdateMeteringToolSecret(t *testing.T) {
